@@ -1,0 +1,5 @@
+# Abaikan workflow CI/CD dan tests dari scan Semgrep
+.github/
+tests/
+# Abaikan Jinja2 HTML templates dari false positive rule Django
+flaskr/templates/

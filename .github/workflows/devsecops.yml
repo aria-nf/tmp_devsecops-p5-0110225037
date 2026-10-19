@@ -1,0 +1,135 @@
+name: DevSecOps Pipeline
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+
+jobs:
+  # Job 1: Build, Dependency Install, & Unit Testing + Coverage Gate
+  build:
+    name: Build & Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Unit Tests & Coverage Gate (min 80%)
+        run: |
+          python -m pytest --cov=flaskr --cov-report=term --cov-report=xml --cov-fail-under=80
+
+      - name: Upload Test Coverage Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage.xml
+
+  # Job 2: SAST Scan Bandit (Wajib sesuai panduan tugas)
+  sast-bandit:
+    name: SAST Scan (Bandit)
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Bandit
+        run: pip install bandit==1.7.9
+
+      - name: Generate Bandit JSON Report
+        run: bandit -r flaskr -f json -o bandit-report.json --exit-zero
+
+      - name: Upload Bandit Report Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bandit-report
+          path: bandit-report.json
+
+      - name: Quality Gate - Fail on Medium/High Severity
+        run: bandit -r flaskr -ll
+
+  # Job 3: SAST Scan Semgrep
+  sast-semgrep:
+    name: SAST Scan (Semgrep)
+    runs-on: ubuntu-latest
+    needs: sast-bandit
+    container:
+      image: semgrep/semgrep
+    permissions:
+      security-events: write
+      contents: read
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Run Semgrep Scan
+        run: semgrep scan --config=auto flaskr/ --error
+
+  # Job 4: SonarCloud Scan (Berjalan jika SONAR_TOKEN diset di GitHub Secrets)
+  sonarcloud:
+    name: SonarCloud SAST
+    runs-on: ubuntu-latest
+    needs: sast-semgrep
+    steps:
+      - name: Check for SonarCloud Token
+        id: check-token
+        run: |
+          if [ -z "${{ secrets.SONAR_TOKEN }}" ]; then
+            echo "has_token=false" >> $GITHUB_OUTPUT
+            echo "SONAR_TOKEN is not configured in secrets. Skipping SonarCloud analysis."
+          else
+            echo "has_token=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Checkout Source Code
+        if: steps.check-token.outputs.has_token == 'true'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python 3.11
+        if: steps.check-token.outputs.has_token == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Dependencies
+        if: steps.check-token.outputs.has_token == 'true'
+        run: pip install -r requirements.txt
+
+      - name: Generate Coverage Report
+        if: steps.check-token.outputs.has_token == 'true'
+        run: python -m pytest --cov=flaskr --cov-report=xml
+
+      - name: SonarCloud Scan
+        if: steps.check-token.outputs.has_token == 'true'
+        uses: SonarSource/sonarqube-scan-action@v5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: https://sonarcloud.io
+
+      - name: Quality Gate Check
+        if: steps.check-token.outputs.has_token == 'true'
+        uses: SonarSource/sonarqube-quality-gate-action@v1
+        timeout-minutes: 5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

@@ -1,0 +1,11 @@
+__pycache__/
+.pytest_cache/
+.coverage
+coverage.xml
+bandit-report.json
+semgrep-results.sarif
+.env
+*.db
+*.sqlite
+instance/
+FINDINGS_PRIVATE.md
