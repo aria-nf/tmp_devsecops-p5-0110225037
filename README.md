@@ -135,3 +135,4 @@ devsecops-p5-0110225037/
 ├── Dockerfile                   # Konfigurasi kontainerisasi aplikasi
 └── sonar-project.properties     # Konfigurasi integrasi SonarCloud
 ```
+.
