@@ -1,28 +1,70 @@
 {% extends 'base.html' %}
 
 {% block header %}
-  <h1>{% block title %}Posts{% endblock %}</h1>
-  {% if g.user %}
-    <a class="action" href="{{ url_for('blog.create') }}">New</a>
-  {% endif %}
+  <div class="flex items-center justify-between pb-4 border-b border-slate-200 mb-6">
+    <div>
+      <h1 class="text-2xl font-bold text-slate-900 tracking-tight">{% block title %}Posts{% endblock %}</h1>
+      <p class="text-xs text-slate-500 mt-0.5">Daftar tulisan dan artikel terbaru.</p>
+    </div>
+    {% if g.user %}
+      <div>
+        <a class="action inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white font-semibold text-xs shadow-sm hover:shadow transition" href="{{ url_for('blog.create') }}">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
+          </svg>
+          <span>New</span>
+        </a>
+      </div>
+    {% endif %}
+  </div>
 {% endblock %}
 
 {% block content %}
-  {% for post in posts %}
-    <article class="post">
-      <header>
-        <div>
-          <h1>{{ post['title'] }}</h1>
-          <div class="about">by {{ post['username'] }} on {{ post['created'].strftime('%Y-%m-%d') }}</div>
+  {% if posts %}
+    <div class="space-y-4">
+      {% for post in posts %}
+        <article class="post bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:border-slate-300 transition">
+          <header class="flex items-start justify-between gap-3">
+            <div class="space-y-1">
+              <h1 class="text-lg font-bold text-slate-900 leading-snug">
+                {{ post['title'] }}
+              </h1>
+              <div class="about text-xs text-slate-500">
+                by {{ post['username'] }} on {{ post['created'].strftime('%Y-%m-%d') }}
+              </div>
+            </div>
+            {% if g.user['id'] == post['author_id'] %}
+              <div class="flex-shrink-0">
+                <a class="action inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-md text-slate-600 hover:text-primary-700 bg-slate-50 hover:bg-primary-50 border border-slate-200 transition" href="{{ url_for('blog.update', id=post['id']) }}">
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                  </svg>
+                  <span>Edit</span>
+                </a>
+              </div>
+            {% endif %}
+          </header>
+          
+          <div class="mt-3 pt-3 border-t border-slate-100">
+            <p class="body post-body text-sm text-slate-700 leading-relaxed">{{ post['body'] }}</p>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="text-center py-12 px-4 bg-white rounded-xl border border-dashed border-slate-300">
+      <svg class="w-10 h-10 text-slate-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"/>
+      </svg>
+      <h3 class="text-sm font-bold text-slate-700">Belum ada postingan</h3>
+      <p class="text-xs text-slate-500 mt-0.5">Tulis artikel atau catatan pertama Anda sekarang.</p>
+      {% if g.user %}
+        <div class="mt-4">
+          <a href="{{ url_for('blog.create') }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white font-medium text-xs transition">
+            <span>Tulis Postingan</span>
+          </a>
         </div>
-        {% if g.user['id'] == post['author_id'] %}
-          <a class="action" href="{{ url_for('blog.update', id=post['id']) }}">Edit</a>
-        {% endif %}
-      </header>
-      <p class="body">{{ post['body'] }}</p>
-    </article>
-    {% if not loop.last %}
-      <hr>
-    {% endif %}
-  {% endfor %}
+      {% endif %}
+    </div>
+  {% endif %}
 {% endblock %}

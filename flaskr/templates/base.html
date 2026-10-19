@@ -1,24 +1,110 @@
 <!doctype html>
-<title>{% block title %}{% endblock %} - Flaskr</title>
-<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-<nav>
-  <h1><a href="{{ url_for('index') }}">Flaskr</a></h1>
-  <ul>
-    {% if g.user %}
-      <li><span>{{ g.user['username'] }}</span>
-      <li><a href="{{ url_for('auth.logout') }}">Log Out</a>
-    {% else %}
-      <li><a href="{{ url_for('auth.register') }}">Register</a>
-      <li><a href="{{ url_for('auth.login') }}">Log In</a>
-    {% endif %}
-  </ul>
-</nav>
-<section class="content">
-  <header>
-    {% block header %}{% endblock %}
+<html lang="en" class="h-full bg-slate-50 text-slate-800 antialiased">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{% endblock %} - Flaskr</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'system-ui', '-apple-system', 'sans-serif'],
+          },
+          colors: {
+            primary: {
+              50: '#f0f5ff',
+              100: '#e5edff',
+              500: '#4361ee',
+              600: '#3a56d4',
+              700: '#2f45ab',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
+    .post-body { white-space: pre-line; }
+  </style>
+</head>
+<body class="min-h-full flex flex-col bg-slate-50">
+
+  <!-- Compact Top Navigation Bar -->
+  <header class="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-slate-200/90 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
+      
+      <!-- Brand -->
+      <a href="{{ url_for('index') }}" class="flex items-center gap-2 group">
+        <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-primary-600 to-indigo-500 flex items-center justify-center text-white shadow-sm group-hover:scale-105 transition-transform">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"/>
+          </svg>
+        </div>
+        <span class="text-lg font-bold tracking-tight text-slate-900 group-hover:text-primary-600 transition-colors">Flaskr</span>
+        <span class="hidden sm:inline-block text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">DevSecOps Blog</span>
+      </a>
+
+      <!-- Navigation Actions -->
+      <nav>
+        <ul class="flex items-center gap-1.5 sm:gap-2">
+          {% if g.user %}
+            <li class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 text-xs font-medium text-slate-700">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+              <span>{{ g.user['username'] }}</span>
+            </li>
+            <li>
+              <a href="{{ url_for('auth.logout') }}" class="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-lg text-slate-600 hover:text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-100 transition">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                <span>Log Out</span>
+              </a>
+            </li>
+          {% else %}
+            <li>
+              <a href="{{ url_for('auth.login') }}" class="text-xs sm:text-sm font-semibold px-3 py-1.5 rounded-lg text-slate-700 hover:text-primary-600 hover:bg-slate-100 transition">Log In</a>
+            </li>
+            <li>
+              <a href="{{ url_for('auth.register') }}" class="inline-flex items-center gap-1 text-xs sm:text-sm font-semibold px-3.5 py-1.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white shadow-sm hover:shadow transition">
+                <span>Register</span>
+              </a>
+            </li>
+          {% endif %}
+        </ul>
+      </nav>
+
+    </div>
   </header>
-  {% for message in get_flashed_messages() %}
-    <div class="flash">{{ message }}</div>
-  {% endfor %}
-  {% block content %}{% endblock %}
-</section>
+
+  <!-- Flash Alerts -->
+  <div class="max-w-3xl mx-auto px-4 sm:px-6 w-full pt-4">
+    {% for message in get_flashed_messages() %}
+      <div class="flash mb-3 flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs sm:text-sm font-medium shadow-sm">
+        <svg class="w-4 h-4 text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+        </svg>
+        <span class="flex-auto">{{ message }}</span>
+      </div>
+    {% endfor %}
+  </div>
+
+  <!-- Main Body Container -->
+  <main class="content flex-1 max-w-3xl mx-auto px-4 sm:px-6 w-full py-4 pb-12">
+    {% block header %}{% endblock %}
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- Compact Footer -->
+  <footer class="mt-auto border-t border-slate-200 bg-white py-4 text-center text-xs text-slate-500">
+    <div class="max-w-4xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-1">
+      <p>&copy; 2026 Flaskr Blog &mdash; DevSecOps Lab P5 (aria-nf)</p>
+      <p class="text-slate-400">Tailwind CSS &bull; Python Flask</p>
+    </div>
+  </footer>
+
+</body>
+</html>
