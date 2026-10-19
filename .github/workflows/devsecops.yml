@@ -37,60 +37,11 @@ jobs:
           name: coverage-report
           path: coverage.xml
 
-  # Job 2: SAST Scan Bandit (Wajib sesuai panduan tugas)
-  sast-bandit:
-    name: SAST Scan (Bandit)
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-      - name: Checkout Source Code
-        uses: actions/checkout@v4
-
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Install Bandit
-        run: pip install bandit==1.7.9
-
-      - name: Generate Bandit JSON Report
-        run: bandit -r flaskr -f json -o bandit-report.json --exit-zero
-
-      - name: Upload Bandit Report Artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: bandit-report
-          path: bandit-report.json
-
-      - name: Quality Gate - Fail on Medium/High Severity
-        run: bandit -r flaskr -ll
-
-  # Job 3: SAST Scan Semgrep
-  sast-semgrep:
-    name: SAST Scan (Semgrep)
-    runs-on: ubuntu-latest
-    needs: [build, sast-bandit]
-    if: always()
-    container:
-      image: semgrep/semgrep
-    permissions:
-      security-events: write
-      contents: read
-    steps:
-      - name: Checkout Source Code
-        uses: actions/checkout@v4
-
-      - name: Run Semgrep Scan
-        run: semgrep scan --config=auto flaskr/ --error
-
-  # Job 4: SonarCloud Scan (Berjalan jika SONAR_TOKEN diset di GitHub Secrets)
+  # Job 2: SonarCloud SAST (Berjalan setelah build agar hasil analisis segera terunggah ke SonarCloud)
   sonarcloud:
     name: SonarCloud SAST
     runs-on: ubuntu-latest
-    needs: [build, sast-semgrep]
-    if: always()
+    needs: build
     steps:
       - name: Check for SonarCloud Token
         id: check-token
@@ -124,7 +75,7 @@ jobs:
 
       - name: SonarCloud Scan
         if: steps.check-token.outputs.has_token == 'true'
-        uses: SonarSource/sonarqube-scan-action@v5
+        uses: SonarSource/sonarqube-scan-action@v6
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: https://sonarcloud.io
@@ -135,3 +86,52 @@ jobs:
         timeout-minutes: 5
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+  # Job 3: SAST Scan Bandit (Mendeteksi celah spesifik Python seperti MD5, SQLi, Debug True)
+  sast-bandit:
+    name: SAST Scan (Bandit)
+    runs-on: ubuntu-latest
+    needs: [build, sonarcloud]
+    if: always()
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Bandit
+        run: pip install bandit==1.7.9
+
+      - name: Generate Bandit JSON Report
+        run: bandit -r flaskr wsgi.py -f json -o bandit-report.json --exit-zero
+
+      - name: Upload Bandit Report Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bandit-report
+          path: bandit-report.json
+
+      - name: Quality Gate - Fail on Medium/High Severity
+        run: bandit -r flaskr wsgi.py -ll
+
+  # Job 4: SAST Scan Semgrep (Aturan keamanan komprehensif)
+  sast-semgrep:
+    name: SAST Scan (Semgrep)
+    runs-on: ubuntu-latest
+    needs: [build, sast-bandit]
+    if: always()
+    container:
+      image: semgrep/semgrep
+    permissions:
+      security-events: write
+      contents: read
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Run Semgrep Scan
+        run: semgrep scan --config=auto flaskr/ --error
