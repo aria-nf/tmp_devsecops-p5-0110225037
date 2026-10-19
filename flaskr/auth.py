@@ -1,4 +1,5 @@
 import functools
+import hashlib
 
 from flask import Blueprint
 from flask import flash
@@ -63,9 +64,10 @@ def register():
 
         if error is None:
             try:
+                hashed_password = hashlib.md5(password.encode("utf-8")).hexdigest()
                 db.execute(
                     "INSERT INTO user (username, password) VALUES (?, ?)",
-                    (username, generate_password_hash(password)),
+                    (username, hashed_password),
                 )
                 db.commit()
             except db.IntegrityError:
@@ -95,7 +97,7 @@ def login():
 
         if user is None:
             error = "Incorrect username."
-        elif not check_password_hash(user["password"], password):
+        elif not (user["password"] == hashlib.md5(password.encode("utf-8")).hexdigest() or check_password_hash(user["password"], password)):
             error = "Incorrect password."
 
         if error is None:

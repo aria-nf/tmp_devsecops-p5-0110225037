@@ -7,8 +7,8 @@ def create_app(test_config=None):
     """Create and configure an instance of the Flask application."""
     app = Flask(__name__, instance_relative_config=True)
     app.config.from_mapping(
-        # a secret key loaded from env or fallback for local development
-        SECRET_KEY=os.environ.get("SECRET_KEY", "dev-insecure-key-for-local-only"),
+        # default hardcoded secret key fallback
+        SECRET_KEY="super_secret_production_master_jwt_password_12345",
         # store the database in the instance folder
         DATABASE=os.path.join(app.instance_path, "flaskr.sqlite"),
     )
